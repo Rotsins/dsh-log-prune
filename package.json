@@ -1,0 +1,35 @@
+{
+  "name": "dsh-log-prune",
+  "version": "0.2.16",
+  "description": "按 token 预算裁切 DSH 会话上下文：裁掉的行换成日期门牌，附带可拖动的配置面板",
+  "license": "MIT",
+  "type": "module",
+  "main": "lib/index.js",
+  "bin": {
+    "log-prune": "bin/log-prune.mjs",
+    "log-prune-doctor": "bin/doctor.mjs",
+    "log-prune-repair": "bin/repair-session.mjs"
+  },
+  "exports": {
+    ".": "./lib/index.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "bin",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "^4.0.1",
+    "@deepseek-ai/dsh": ">=0.2.1-rc.2 <0.3.0"
+  }
+}

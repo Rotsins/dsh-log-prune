@@ -1,0 +1,5 @@
+# dsh-log-prune 的 bundle 挂载：给只认 bundle 形式的 DSH 用
+- insert:
+    - id: log-prune
+      name: dsh-log-prune
+      disabled: false
