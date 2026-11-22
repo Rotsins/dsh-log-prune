@@ -1,10 +1,24 @@
 {
   "name": "dsh-log-prune",
-  "version": "0.2.16",
+  "version": "0.2.18.2",
   "description": "按 token 预算裁切 DSH 会话上下文：裁掉的行换成日期门牌，附带可拖动的配置面板",
   "license": "MIT",
   "type": "module",
   "main": "lib/index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Rotsins/dsh-log-prune.git"
+  },
+  "homepage": "https://github.com/Rotsins/dsh-log-prune#readme",
+  "bugs": {
+    "url": "https://github.com/Rotsins/dsh-log-prune/issues"
+  },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "context",
+    "prune"
+  ],
   "bin": {
     "log-prune": "bin/log-prune.mjs",
     "log-prune-doctor": "bin/doctor.mjs",
@@ -16,17 +30,28 @@
   },
   "files": [
     "lib",
+    "templates",
     "bin",
+    "test",
+    "tools",
     "cordis.patch.yml",
-    "README.md"
+    "README.md",
+    "INSTALL.md",
+    "CONFIG.md",
+    "RELEASE-NOTES.md",
+    "!**/*.bak-*",
+    "!**/.bak-*"
   ],
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"
     }
   },
+  "scripts": {
+    "test": "node --test test/*.test.mjs && node test/e2e.mjs"
+  },
   "engines": {
-    "node": ">=20"
+    "node": ">=22.15"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "^4.0.1",

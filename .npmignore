@@ -1,0 +1,6 @@
+*.bak-*
+.pre-rescue-*
+lib/**/*.bak-*
+lib/.pre-rescue-*
+*.tgz
+.DS_Store

@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 // dsh-log-prune 命令行：全局重置 / 清掉某个会话的覆盖
 // 用法：
-//   node <plugin-dir>/bin/log-prune.mjs reset-global
-//   node <plugin-dir>/bin/log-prune.mjs reset-session <session-id>
-//   node <plugin-dir>/bin/log-prune.mjs list
+//   node <插件目录>/bin/log-prune.mjs reset-global
+//   node <插件目录>/bin/log-prune.mjs reset-session <session-id>
+//   node <插件目录>/bin/log-prune.mjs list
 import { saveConfig, DEFAULTS, SESSIONS_PATH, CONFIG_PATH } from '../lib/config.mjs'
 import { clearSessionOverride, loadSessions } from '../lib/config.mjs'
 

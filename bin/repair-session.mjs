@@ -3,46 +3,39 @@
 // 用法：
 //   node bin/repair-session.mjs <会话id 或 会话目录> [--dry]
 // 先跑 --dry 看会删几条；不带 --dry 会先备份 .bak-<时间> 再改。
-import { existsSync, readdirSync, copyFileSync, writeFileSync } from 'node:fs'
-import { join, basename } from 'node:path'
-import { spawnSync } from 'node:child_process'
-import { zstdDecompressSync, zstdCompressSync } from 'node:zlib'
-import { decompress as fzstdDecompress } from '../lib/vendor/fzstd.mjs'
+import { existsSync, readdirSync, copyFileSync, writeFileSync, readFileSync } from 'node:fs'
+import { join } from 'node:path'
+import zlib from 'node:zlib'
 
-const HOME = process.env.DSH_HOME || '~/.dsh'
+const { zstdCompressSync } = zlib
+// 2026-11-20 R2-H5：统一多帧安全解码（fzstd → CLI → 内置）
+import { unzstd } from '../lib/zstd-safe.mjs'
+import { sessionFileName } from '../lib/session-file.mjs'
+
+import { resolveHome } from '../lib/home.mjs'
+const HOME = resolveHome()
 const SESSIONS = join(HOME, 'sessions')
 const arg = process.argv[2]
 const dry = process.argv.includes('--dry')
 if (!arg) { console.error('用法：repair-session.mjs <会话id 或 会话目录> [--dry]'); process.exit(2) }
 
 function findDir(a) {
-  if (existsSync(join(a, 'session.v4.jsonl.zstd'))) return a
+  if (existsSync(join(a, sessionFileName(a)))) return a
   if (!existsSync(SESSIONS)) return null
   for (const ws of readdirSync(SESSIONS)) {
     const p = join(SESSIONS, ws, a)
-    if (existsSync(join(p, 'session.v4.jsonl.zstd'))) return p
+    if (existsSync(join(p, sessionFileName(p)))) return p
   }
   return null
 }
 const dir = findDir(arg)
 if (!dir) { console.error('找不到会话目录：' + arg); process.exit(2) }
-const file = join(dir, 'session.v4.jsonl.zstd')
+const file = join(dir, sessionFileName(dir))
 console.log('会话目录：' + dir)
 
 let raw = null
-// 多帧日志：先上纯 JS 解码器（逐帧解全），再考虑 Node 内置/系统命令
-try { raw = Buffer.from(fzstdDecompress(readFileSync(file))) } catch {}
-if (!raw && typeof zstdDecompressSync === 'function') {
-  try { raw = zstdDecompressSync(readFileSync(file)) } catch {}
-}
-if (!raw) {
-  const dec = spawnSync('zstd', ['-dc', file], { maxBuffer: 1 << 30, windowsHide: true })
-  if (dec.status === 0) raw = dec.stdout
-}
-if (!raw) {
-  try { raw = Buffer.from(fzstdDecompress(readFileSync(file))) } catch {}
-}
-if (!raw) { console.error('解压失败：既没有系统 zstd，也没有可用的内置解码'); process.exit(2) }
+// 2026-11-20 R2-H5：多帧日志统一走 zstd-safe（fzstd → CLI → 内置）
+try { raw = unzstd(readFileSync(file)) } catch (e) { console.error('解压失败：' + (e?.message ?? e)); process.exit(2) }
 const lines = raw.toString('utf8').split('\n').filter(Boolean)
 const events = []
 for (const line of lines) {
@@ -82,11 +75,8 @@ if (!bad.length) { console.log('没有要修的，未改动'); process.exit(0) }
 
 const bak = file + '.bak-' + new Date().toISOString().replace(/[-:T]/g, '').slice(0, 15)
 copyFileSync(file, bak)
-const text = kept.map((e) => JSON.stringify(e)).join('\n') + '\n'
-if (typeof zstdCompressSync === 'function') {
-  writeFileSync(file, zstdCompressSync(Buffer.from(text)))
-} else {
-  const enc = spawnSync('zstd', ['-19', '-T0', '-q', '-f', '-o', file], { input: text, maxBuffer: 1 << 30, windowsHide: true })
-  if (enc.status !== 0) { console.error('压缩失败：系统没有 zstd 且当前 Node 不支持 zstd 压缩，请先装 zstd'); process.exit(2) }
-}
+if (typeof zstdCompressSync !== 'function') { console.error('当前 Node 不支持 zstd 压缩（需要 22.15+），无法安全重写会话；请升级 Node 或改用 DSH 面板的修复按钮'); process.exit(2) }
+// 每行一帧，保持多帧格式（单帧重打包曾把会话弄丢，绝不再犯）
+const outLines = kept.map((e) => JSON.stringify(e))
+writeFileSync(file, Buffer.concat(outLines.map((l) => zstdCompressSync(Buffer.from(l + '\n')))))
 console.log('已修复，原文件备份：' + bak)
